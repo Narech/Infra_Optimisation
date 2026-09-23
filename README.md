@@ -50,11 +50,11 @@ Avec le prompt j'ai demandé une réponse JSON, en français, avec 4 champs (`ac
     "max_temperature_celsius": 89,
     "points_analyzed": 500
   },
-  "average_latency_ms": 0,
-  "max_cpu_usage": 0,
-  "max_memory_usage": 0,
-  "error_rate": 0,
-  "uptime_seconds": 0,
+  "average_latency_ms": 156.02,
+  "max_cpu_usage": 99,
+  "max_memory_usage": 92,
+  "error_rate": 0.0316,
+  "uptime_seconds": 1258200,
   "anomalies": [
     {
       "metric": "cpu_usage",
