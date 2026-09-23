@@ -36,6 +36,8 @@ METRIC_DESCRIPTIONS = {
     "temperature_celsius": "Température matérielle élevée",
 }
 
+SERVICE_STATUS_LEVEL = {"online": 0, "degraded": 1, "offline": 2}
+
 
 def _get_anomaly_level(
     value: float,
@@ -81,8 +83,8 @@ def _detect_metric_anomalies(logs: list[dict]) -> list[dict]:
                 worst_by_metric[metric] = {
                     "metric": metric,
                     "value": value,
-                    "seuil": medium,
-                    "anomaly_level": anomaly_level,
+                    "threshold": medium,
+                    "severity": anomaly_level,
                     "description": (
                         f"{METRIC_DESCRIPTIONS[metric]} "
                         f"(relevé à {entry['timestamp']})"
@@ -118,9 +120,9 @@ def _detect_service_anomalies(logs: list[dict]) -> list[dict]:
 
                 anomalies.append({
                     "metric": f"service_status.{service}",
-                    "value": status,
-                    "seuil": "online",
-                    "anomaly_level": anomaly_level,
+                    "value": SERVICE_STATUS_LEVEL[status],
+                    "threshold": SERVICE_STATUS_LEVEL["online"],
+                    "severity": anomaly_level,
                     "description": (
                         f"Le service '{service}' est en statut "
                         f"'{status}' "
@@ -149,7 +151,8 @@ def _service_status_summary(logs: list[dict]) -> dict:
     }
 
     for service, status in latest_status.items():
-        summary.setdefault(status, []).append(service)
+        if status in summary:
+            summary[status].append(service)
 
     return summary
 

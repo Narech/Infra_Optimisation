@@ -11,7 +11,7 @@ Le pipeline est un graphe LangGraph séquentiel à 3 nœuds :
 data/rapport.json
 1- Ingestion (Lecture et validation)
 2- Détection d'anomalies
-3- Génération de recommendations ( Avec un LLM local, Mistral vis Ollama et des recommendations statiques en support)
+3- Génération de recommendations ( Avec un LLM local, Mistral via Ollama et des recommendations statiques en support)
 
 ## Fichiers
 
@@ -30,7 +30,7 @@ data/rapport.json
 - **Orchestration LangGraph** : chaque étape est un nœud (`state -> state`) relié par `add_edge`, avec un état typé (`TypedDict`) déclarant les clés que chaque nœud lit et écrit (nécessaire pour que LangGraph propage correctement les données d'un nœud à l'autre)
 
 - **Recommandations par LLM local Mistral (via Ollama)**, plutôt qu'une API payante, Ollama est gratuit, opensource, sans clé API, fonctionne hors-ligne une fois le modèle téléchargé (`ollama pull mistral`). 
-Avec le prompt j'ai demandé une réponse JSON, en français, avec 4 champs (`action`, `target`, `parameters`, `advantage`)
+Avec le prompt j'ai demandé une réponse JSON, en français, avec 4 champs (`action`, `target`, `parameters`, `benefit_estimate`)
 
 - **Recommendations statiques en cas d'échec de Ollama** : si Ollama n'est pas lancé, si l'appel expire (timeout), ou si la réponse du modèle est incomplète ou mal formée, le pipeline retombe automatiquement sur `RECOMMENDATION_RULES`, des recommendations statiques couvrant chaque métrique. Le pipeline ne plante donc jamais à cause d'une indisponibilité du LLM.
 
@@ -59,8 +59,8 @@ Avec le prompt j'ai demandé une réponse JSON, en français, avec 4 champs (`ac
     {
       "metric": "cpu_usage",
       "value": 99,
-      "seuil": 75,
-      "anomaly_level": "high",
+      "threshold": 75,
+      "severity": "high",
       "description": "Utilisation CPU élevée (relevé à 2023-10-02T13:00:00Z)"
     }
   ],
@@ -70,7 +70,7 @@ Avec le prompt j'ai demandé une réponse JSON, en français, avec 4 champs (`ac
       "action": "Mettre à l'échelle le serveur ou réduire la charge de travail",
       "target": "compute",
       "parameters": { "strategy": "..." },
-      "advantage": "Réduction de 20% de la consommation de ressources CPU..."
+      "benefit_estimate": "Réduction de 20% de la consommation de ressources CPU..."
     }
   ],
   "service_status_summary": {
@@ -113,4 +113,3 @@ Dans `src/generate_recommendation.py` :
 - `OLLAMA_MODEL`: Modèle Ollama utilisé (`mistral`)
 - `OLLAMA_TIMEOUT_S`: Délai maximum par appel avant renvoi à la recommendation statique 
 - `OLLAMA_MAX_TOKENS`: Longueur maximale de la réponse générée pour éviter un JSON tronqué
-

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-23T18:55:21.692919Z",
+  "timestamp": "2026-09-23T20:55:35.828090Z",
   "insights": {
     "avg_cpu_usage": 60.67,
     "avg_memory_usage": 67.63,
@@ -18,164 +18,164 @@
     {
       "metric": "cpu_usage",
       "value": 99,
-      "seuil": 75,
-      "anomaly_level": "high",
+      "threshold": 75,
+      "severity": "high",
       "description": "Utilisation CPU élevée (relevé à 2023-10-02T13:00:00Z)"
     },
     {
       "metric": "memory_usage",
       "value": 92,
-      "seuil": 75,
-      "anomaly_level": "high",
+      "threshold": 75,
+      "severity": "high",
       "description": "Utilisation mémoire élevée (relevé à 2023-10-02T13:00:00Z)"
     },
     {
       "metric": "latency_ms",
       "value": 384,
-      "seuil": 200,
-      "anomaly_level": "medium",
+      "threshold": 200,
+      "severity": "medium",
       "description": "Latence réseau/applicative élevée (relevé à 2023-10-03T14:00:00Z)"
     },
     {
       "metric": "disk_usage",
       "value": 97,
-      "seuil": 80,
-      "anomaly_level": "high",
+      "threshold": 80,
+      "severity": "high",
       "description": "Espace disque presque saturé (relevé à 2023-10-05T21:00:00Z)"
     },
     {
       "metric": "io_wait",
       "value": 14,
-      "seuil": 10,
-      "anomaly_level": "medium",
+      "threshold": 10,
+      "severity": "medium",
       "description": "Attente I/O disque anormalement haute (relevé à 2023-10-01T22:00:00Z)"
     },
     {
       "metric": "error_rate",
       "value": 0.13,
-      "seuil": 0.03,
-      "anomaly_level": "high",
+      "threshold": 0.03,
+      "severity": "high",
       "description": "Taux d'erreur applicatif élevé (relevé à 2023-10-02T18:00:00Z)"
     },
     {
       "metric": "temperature_celsius",
       "value": 89,
-      "seuil": 75,
-      "anomaly_level": "high",
+      "threshold": 75,
+      "severity": "high",
       "description": "Température matérielle élevée (relevé à 2023-10-03T14:00:00Z)"
     },
     {
       "metric": "service_status.api_gateway",
-      "value": "degraded",
-      "seuil": "online",
-      "anomaly_level": "medium",
+      "value": 1,
+      "threshold": 0,
+      "severity": "medium",
       "description": "Le service 'api_gateway' est en statut 'degraded' (relevé à 2023-10-01T12:00:00Z)"
     },
     {
       "metric": "service_status.cache",
-      "value": "degraded",
-      "seuil": "online",
-      "anomaly_level": "medium",
+      "value": 1,
+      "threshold": 0,
+      "severity": "medium",
       "description": "Le service 'cache' est en statut 'degraded' (relevé à 2023-10-01T15:00:00Z)"
     },
     {
       "metric": "service_status.database",
-      "value": "offline",
-      "seuil": "online",
-      "anomaly_level": "high",
+      "value": 2,
+      "threshold": 0,
+      "severity": "high",
       "description": "Le service 'database' est en statut 'offline' (relevé à 2023-10-01T19:00:00Z)"
     }
   ],
   "recommendations": [
     {
       "id": "rec-001",
-      "action": "Régler la limite de charge du processeur",
-      "target": "compute:cpu_limit",
+      "action": "Mise à l'échelle des ressources CPU",
+      "target": "compute",
       "parameters": {
-        "strategy": "Reduction de la limite de charge du processeur à 90% pour limiter l'usage de la puce"
+        "strategy": "Augmenter la capacité de processeur pour réduire la charge CPU"
       },
-      "advantage": "Réduction de la consommation électrique et de la surcharge de la puce"
+      "benefit_estimate": "Réduction de la charge CPU de 24%, ce qui améliore la performance et la stabilité de l'application"
     },
     {
       "id": "rec-002",
-      "action": "Optimiser l'utilisation de la mémoire",
-      "target": "compute:application",
+      "action": "Analyser la consommation de mémoire",
+      "target": "application",
       "parameters": {
-        "strategy": "Vérifier les processus inutilisés ou bloqués et les arrêter si nécessaire, Optimiser la taille des cache, Allouer moins de mémoire aux applications moins importantes."
+        "strategy": "Profilage des applications pour identifier les problèmes de mémoire excessifs"
       },
-      "advantage": "Réduction de la consommation énergétique et des coûts de fonctionnement"
+      "benefit_estimate": "Réduction de la consommation de mémoire et amélioration de la performance de l'application"
     },
     {
       "id": "rec-003",
-      "action": "Optimiser la latence en réduisant le trafic réseau",
+      "action": "Analyse de trafic et optimisation de latence réseau",
       "target": "network",
       "parameters": {
-        "strategy": "Analyse de la configuration du réseau, audits et tests de performances"
+        "strategy": "Analyse des paquets et optimisation des routes pour réduire la latence"
       },
-      "advantage": "Réduction de 30% de la latence"
+      "benefit_estimate": "Réduction de 30% de la latence réseau"
     },
     {
       "id": "rec-004",
-      "action": "Reduction de la consommation disque",
+      "action": "Augmenter la capacité de stockage",
       "target": "storage",
       "parameters": {
-        "strategy": "Reorganisation des fichiers pour libérer de l'espace disque"
+        "strategy": "Ajouter un nouveau disque ou augmenter la capacité du disque existant"
       },
-      "advantage": "Libération de 2GB d'espace sur le disque dur"
+      "benefit_estimate": "Réduction de la saturation du disque de plus de 10%"
     },
     {
       "id": "rec-005",
-      "action": "Optimiser les performances d'IO",
-      "target": "compute|storage",
+      "action": "Optimiser la performance du disque dur en réduisant l'attente I/O",
+      "target": "storage",
       "parameters": {
-        "strategy": "Analyse des disques et amélioration de la structure de fichiers"
+        "strategy": "Ajuster la taille de la mémoire tampon, optimiser la fragmentation de données, ou migrer vers un disque SSD"
       },
-      "advantage": "Réduction de 10% du temps d'attente en IO"
+      "benefit_estimate": "Réduction de 50% de l'attente I/O disque"
     },
     {
       "id": "rec-006",
-      "action": "Mettre en place des mesures correctives pour réduire la taux d'erreur",
+      "action": "Analyse et réduction des erreurs applicatives",
       "target": "application",
       "parameters": {
-        "strategy": "Analyser les logs et la journée des erreurs pour identifier la source de l'anomalie, puis appliquer des corrections, telles que des patchs système, des mises à jour logicieles, ou des optimisations de code"
+        "strategy": "Examiner les logs et paramètres de configuration, puis réajuster les paramètres de performance et de sécurité pour réduire le taux d'erreur"
       },
-      "advantage": "Réduction de 30% de la taux d'erreur, amélioration de la qualité de service"
+      "benefit_estimate": "Réduction du taux d'erreur applicatif de 30%"
     },
     {
       "id": "rec-007",
-      "action": "Mise en place d'un système de contrôle de température",
-      "target": "hardware:serveur",
+      "action": "Régler la température matérielle",
+      "target": "hardware:équipement_informatique",
       "parameters": {
-        "strategy": "Monitorage et gestion automatique de la température"
+        "strategy": "Réglage des paramètres de refroidissement"
       },
-      "advantage": "Réduction des risques de surchauffe et d'arrêt du matériel"
+      "benefit_estimate": "Réduction de la dégradation matérielle et prévention de pannes"
     },
     {
       "id": "rec-008",
-      "action": "Réinitialiser l'API Gateway dégradée",
-      "target": "service:API_Gateway",
-      "parameters": {
-        "strategy": "Redémarrage"
-      },
-      "advantage": "Récupération de la performance de l'API Gateway"
-    },
-    {
-      "id": "rec-009",
-      "action": "Réinitialiser le cache",
-      "target": "service:Redis",
-      "parameters": {
-        "strategy": "flushdb"
-      },
-      "advantage": "Réduction des dégradations du service"
-    },
-    {
-      "id": "rec-010",
-      "action": "Redémarrer le serveur de base de données",
-      "target": "service:Database_Server",
+      "action": "Réinitialiser l'api_gateway",
+      "target": "service:api_gateway",
       "parameters": {
         "strategy": "reboot"
       },
-      "advantage": "Rétablissement du service de base de données"
+      "benefit_estimate": "Réduction de la dégradation du service API Gateway"
+    },
+    {
+      "id": "rec-009",
+      "action": "Réinitialiser le service 'cache'",
+      "target": "service:cache",
+      "parameters": {
+        "strategy": "restart"
+      },
+      "benefit_estimate": "Rétablissement du service à son état normal"
+    },
+    {
+      "id": "rec-010",
+      "action": "Réinitialiser le service de base de données",
+      "target": "service:database",
+      "parameters": {
+        "strategy": "reboot"
+      },
+      "benefit_estimate": "Rétablissement du service et réduction de la perte de données"
     }
   ],
   "service_status_summary": {
