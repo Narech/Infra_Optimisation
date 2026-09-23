@@ -1,6 +1,6 @@
 # Infra Optimisation
 
-Pipeline d'analyse d'infrastructure technique pour une PME française : ingestion
+Pipeline d'analyse d'infrastructure technique : ingestion
 de logs, détection d'anomalies par seuils métier, et génération de
 recommandations d'optimisation orchestré avec **LangGraph**.
 
