@@ -1,0 +1,1035 @@
+Directory structure:
+└── narech-infra_optimisation/
+    ├── README.md
+    ├── output.json
+    ├── requirements.txt
+    └── src/
+        ├── __init__.py
+        ├── anomaly_detection.py
+        ├── data_ingestion_processing.py
+        ├── generate_recommendation.py
+        ├── graph.py
+        └── main.py
+
+================================================
+FILE: README.md
+================================================
+# Infra Optimisation par Narech HOUESSOU
+
+Pipeline d'analyse d'infrastructure technique : ingestion
+de logs, détection d'anomalies par seuils métier, et génération de
+recommandations d'optimisation orchestré avec **LangGraph**.
+
+## Architecture
+
+Le pipeline est un graphe LangGraph séquentiel à 3 nœuds :
+
+data/rapport.json
+1- Ingestion (Lecture et validation)
+2- Détection d'anomalies
+3- Génération de recommendations ( Avec un LLM local, Mistral via Ollama et des recommendations statiques en support)
+
+## Fichiers
+
+- `src/data_ingestion_processing.py` lit `data/rapport.json`, valide chaque enregistrement contre le schéma attendu (`DATA_STRUCTURE`), rejette et journalise les entrées non conformes. 
+
+- `src/anomaly_detection.py` calcule les statistiques globaux (latence moyenne, pics CPU/mémoire, taux d'erreur, uptime, insights) et détecte les anomalies par comparaison à des seuils métier (`SEUILS`), ainsi que le statut de chaque service (`service_status_summary`)
+
+- `src/generate_recommendation.py`, pour chaque anomalie détectée, génère une recommandation d'action via un LLM local Mistral (via Ollama), avec renvoi automatique sur des recommendations statiques en cas d'échec
+
+- `src/graph.py`  Construit et compile le graphe LangGraph (`StateGraph`), définit l'état partagé (`PipelineState`) et assemble le rapport final. 
+
+- `src/main.py` Point d'entrée CLI : exécute le pipeline et écrit `output.json` 
+
+## Choix techniques
+
+- **Orchestration LangGraph** : chaque étape est un nœud (`state -> state`) relié par `add_edge`, avec un état typé (`TypedDict`) déclarant les clés que chaque nœud lit et écrit (nécessaire pour que LangGraph propage correctement les données d'un nœud à l'autre)
+
+- **Recommandations par LLM local Mistral (via Ollama)**, plutôt qu'une API payante, Ollama est gratuit, opensource, sans clé API, fonctionne hors-ligne une fois le modèle téléchargé (`ollama pull mistral`). 
+Avec le prompt j'ai demandé une réponse JSON, en français, avec 4 champs (`action`, `target`, `parameters`, `benefit_estimate`)
+
+- **Recommendations statiques en cas d'échec de Ollama** : si Ollama n'est pas lancé, si l'appel expire (timeout), ou si la réponse du modèle est incomplète ou mal formée, le pipeline retombe automatiquement sur `RECOMMENDATION_RULES`, des recommendations statiques couvrant chaque métrique. Le pipeline ne plante donc jamais à cause d'une indisponibilité du LLM.
+
+- **Seuils d'anomalie** (`SEUILS` dans `anomaly_detection.py`) calibrés par métrique, avec un niveau `medium`/`high` selon la valeur observée.
+
+## Format de sortie (`output.json`)
+
+```json
+{
+  "timestamp": "2026-09-23T11:38:54Z",
+  "insights": {
+    "avg_cpu_usage": 60.67,
+    "avg_memory_usage": 67.63,
+    "avg_disk_usage": 63.91,
+    "avg_io_wait": 4.01,
+    "max_latency_ms": 384,
+    "max_temperature_celsius": 89,
+    "points_analyzed": 500
+  },
+  "average_latency_ms": 156.02,
+  "max_cpu_usage": 99,
+  "max_memory_usage": 92,
+  "error_rate": 0.0316,
+  "uptime_seconds": 1258200,
+  "anomalies": [
+    {
+      "metric": "cpu_usage",
+      "value": 99,
+      "threshold": 75,
+      "severity": "high",
+      "description": "Utilisation CPU élevée (relevé à 2023-10-02T13:00:00Z)"
+    }
+  ],
+  "recommendations": [
+    {
+      "id": "rec-001",
+      "action": "Mettre à l'échelle le serveur ou réduire la charge de travail",
+      "target": "compute",
+      "parameters": { "strategy": "..." },
+      "benefit_estimate": "Réduction de 20% de la consommation de ressources CPU..."
+    }
+  ],
+  "service_status_summary": {
+    "online": ["database", "api_gateway", "cache"],
+    "degraded": [],
+    "offline": []
+  }
+}
+```
+
+## Installation
+
+```bash
+python3 -m venv .env_infra_optimisation
+source .env_infra_optimisation/bin/activate
+pip install -r requirements.txt
+```
+
+### Prérequis pour obtenir les recommandations par LLM
+
+1. Installer [Ollama](https://ollama.com/download)
+brew install ollama
+2. Télécharger le modèle : `ollama pull mistral` 
+3. Lancer le serveur Ollama en arrière-plan : `ollama serve`
+
+
+## Exécution
+
+```bash
+python3 -m src.main
+```
+
+Le terminal affiche le nombre d'enregistrements analysés, le nombre
+d'anomalies détectées et le nombre de recommandations générées.
+
+## Configuration du modèle LLM
+
+Dans `src/generate_recommendation.py` :
+
+- `OLLAMA_MODEL`: Modèle Ollama utilisé (`mistral`)
+- `OLLAMA_TIMEOUT_S`: Délai maximum par appel avant renvoi à la recommendation statique 
+- `OLLAMA_MAX_TOKENS`: Longueur maximale de la réponse générée pour éviter un JSON tronqué
+
+
+================================================
+FILE: output.json
+================================================
+{
+  "timestamp": "2026-09-23T20:55:35.828090Z",
+  "insights": {
+    "avg_cpu_usage": 60.67,
+    "avg_memory_usage": 67.63,
+    "avg_disk_usage": 63.91,
+    "avg_io_wait": 4.01,
+    "max_latency_ms": 384,
+    "max_temperature_celsius": 89,
+    "points_analyzed": 500
+  },
+  "average_latency_ms": 156.02,
+  "max_cpu_usage": 99,
+  "max_memory_usage": 92,
+  "error_rate": 0.0316,
+  "uptime_seconds": 1258200,
+  "anomalies": [
+    {
+      "metric": "cpu_usage",
+      "value": 99,
+      "threshold": 75,
+      "severity": "high",
+      "description": "Utilisation CPU élevée (relevé à 2023-10-02T13:00:00Z)"
+    },
+    {
+      "metric": "memory_usage",
+      "value": 92,
+      "threshold": 75,
+      "severity": "high",
+      "description": "Utilisation mémoire élevée (relevé à 2023-10-02T13:00:00Z)"
+    },
+    {
+      "metric": "latency_ms",
+      "value": 384,
+      "threshold": 200,
+      "severity": "medium",
+      "description": "Latence réseau/applicative élevée (relevé à 2023-10-03T14:00:00Z)"
+    },
+    {
+      "metric": "disk_usage",
+      "value": 97,
+      "threshold": 80,
+      "severity": "high",
+      "description": "Espace disque presque saturé (relevé à 2023-10-05T21:00:00Z)"
+    },
+    {
+      "metric": "io_wait",
+      "value": 14,
+      "threshold": 10,
+      "severity": "medium",
+      "description": "Attente I/O disque anormalement haute (relevé à 2023-10-01T22:00:00Z)"
+    },
+    {
+      "metric": "error_rate",
+      "value": 0.13,
+      "threshold": 0.03,
+      "severity": "high",
+      "description": "Taux d'erreur applicatif élevé (relevé à 2023-10-02T18:00:00Z)"
+    },
+    {
+      "metric": "temperature_celsius",
+      "value": 89,
+      "threshold": 75,
+      "severity": "high",
+      "description": "Température matérielle élevée (relevé à 2023-10-03T14:00:00Z)"
+    },
+    {
+      "metric": "service_status.api_gateway",
+      "value": 1,
+      "threshold": 0,
+      "severity": "medium",
+      "description": "Le service 'api_gateway' est en statut 'degraded' (relevé à 2023-10-01T12:00:00Z)"
+    },
+    {
+      "metric": "service_status.cache",
+      "value": 1,
+      "threshold": 0,
+      "severity": "medium",
+      "description": "Le service 'cache' est en statut 'degraded' (relevé à 2023-10-01T15:00:00Z)"
+    },
+    {
+      "metric": "service_status.database",
+      "value": 2,
+      "threshold": 0,
+      "severity": "high",
+      "description": "Le service 'database' est en statut 'offline' (relevé à 2023-10-01T19:00:00Z)"
+    }
+  ],
+  "recommendations": [
+    {
+      "id": "rec-001",
+      "action": "Mise à l'échelle des ressources CPU",
+      "target": "compute",
+      "parameters": {
+        "strategy": "Augmenter la capacité de processeur pour réduire la charge CPU"
+      },
+      "benefit_estimate": "Réduction de la charge CPU de 24%, ce qui améliore la performance et la stabilité de l'application"
+    },
+    {
+      "id": "rec-002",
+      "action": "Analyser la consommation de mémoire",
+      "target": "application",
+      "parameters": {
+        "strategy": "Profilage des applications pour identifier les problèmes de mémoire excessifs"
+      },
+      "benefit_estimate": "Réduction de la consommation de mémoire et amélioration de la performance de l'application"
+    },
+    {
+      "id": "rec-003",
+      "action": "Analyse de trafic et optimisation de latence réseau",
+      "target": "network",
+      "parameters": {
+        "strategy": "Analyse des paquets et optimisation des routes pour réduire la latence"
+      },
+      "benefit_estimate": "Réduction de 30% de la latence réseau"
+    },
+    {
+      "id": "rec-004",
+      "action": "Augmenter la capacité de stockage",
+      "target": "storage",
+      "parameters": {
+        "strategy": "Ajouter un nouveau disque ou augmenter la capacité du disque existant"
+      },
+      "benefit_estimate": "Réduction de la saturation du disque de plus de 10%"
+    },
+    {
+      "id": "rec-005",
+      "action": "Optimiser la performance du disque dur en réduisant l'attente I/O",
+      "target": "storage",
+      "parameters": {
+        "strategy": "Ajuster la taille de la mémoire tampon, optimiser la fragmentation de données, ou migrer vers un disque SSD"
+      },
+      "benefit_estimate": "Réduction de 50% de l'attente I/O disque"
+    },
+    {
+      "id": "rec-006",
+      "action": "Analyse et réduction des erreurs applicatives",
+      "target": "application",
+      "parameters": {
+        "strategy": "Examiner les logs et paramètres de configuration, puis réajuster les paramètres de performance et de sécurité pour réduire le taux d'erreur"
+      },
+      "benefit_estimate": "Réduction du taux d'erreur applicatif de 30%"
+    },
+    {
+      "id": "rec-007",
+      "action": "Régler la température matérielle",
+      "target": "hardware:équipement_informatique",
+      "parameters": {
+        "strategy": "Réglage des paramètres de refroidissement"
+      },
+      "benefit_estimate": "Réduction de la dégradation matérielle et prévention de pannes"
+    },
+    {
+      "id": "rec-008",
+      "action": "Réinitialiser l'api_gateway",
+      "target": "service:api_gateway",
+      "parameters": {
+        "strategy": "reboot"
+      },
+      "benefit_estimate": "Réduction de la dégradation du service API Gateway"
+    },
+    {
+      "id": "rec-009",
+      "action": "Réinitialiser le service 'cache'",
+      "target": "service:cache",
+      "parameters": {
+        "strategy": "restart"
+      },
+      "benefit_estimate": "Rétablissement du service à son état normal"
+    },
+    {
+      "id": "rec-010",
+      "action": "Réinitialiser le service de base de données",
+      "target": "service:database",
+      "parameters": {
+        "strategy": "reboot"
+      },
+      "benefit_estimate": "Rétablissement du service et réduction de la perte de données"
+    }
+  ],
+  "service_status_summary": {
+    "online": [
+      "database",
+      "api_gateway",
+      "cache"
+    ],
+    "degraded": [],
+    "offline": []
+  }
+}
+
+
+================================================
+FILE: requirements.txt
+================================================
+annotated-types==0.8.0
+anyio==4.15.1
+certifi==2026.7.22
+charset-normalizer==3.5.1
+distro==1.9.0
+h11==0.16.0
+httpcore==1.0.9
+httpcore2==2.13.1
+httpx==0.28.1
+httpx2==2.13.1
+idna==3.20
+jsonpatch==1.33
+jsonpointer==3.1.1
+langchain-core==1.6.4
+langchain-protocol==0.0.19
+langgraph==1.2.12
+langgraph-checkpoint==4.2.0
+langgraph-prebuilt==1.1.0
+langgraph-sdk==0.4.5
+langsmith==0.14.0
+orjson==3.12.0
+ormsgpack==1.12.2
+packaging==26.3
+pydantic==2.13.5
+pydantic_core==2.46.5
+PyYAML==6.0.3
+requests==2.34.2
+requests-toolbelt==1.0.0
+sniffio==1.3.1
+tenacity==9.1.4
+truststore==0.10.4
+typing-inspection==0.4.4
+typing_extensions==4.16.0
+urllib3==2.8.0
+uuid_utils==0.17.1
+websockets==16.1.1
+xxhash==4.0.1
+zstandard==0.25.0
+
+
+
+================================================
+FILE: src/__init__.py
+================================================
+[Empty file]
+
+
+================================================
+FILE: src/anomaly_detection.py
+================================================
+"""
+Pour la détection d'anomalies
+Permet de:
+- Analyser les métriques et identifier les valeurs anormales en fonction des seuils définis
+- Calculer les stats sur toute la fenêtre de logs.
+
+Entrée  : state["input_data_logs"]
+Sortie  : state["anomalies"]
+          state["aggregates"]
+          state["service_status_summary"]
+"""
+
+from __future__ import annotations
+
+
+# Seuils (medium, high)
+SEUILS = {
+    "cpu_usage": (75, 90),                  # %
+    "memory_usage": (75, 90),               # %
+    "latency_ms": (200, 400),               # ms
+    "disk_usage": (80, 92),                 # %
+    "io_wait": (10, 20),                    # %
+    "error_rate": (0.03, 0.1),              # ratio
+    "temperature_celsius": (75, 85),        # °C
+}
+
+
+# Description des métriques
+METRIC_DESCRIPTIONS = {
+    "cpu_usage": "Utilisation CPU élevée",
+    "memory_usage": "Utilisation mémoire élevée",
+    "latency_ms": "Latence réseau/applicative élevée",
+    "disk_usage": "Espace disque presque saturé",
+    "io_wait": "Attente I/O disque anormalement haute",
+    "error_rate": "Taux d'erreur applicatif élevé",
+    "temperature_celsius": "Température matérielle élevée",
+}
+
+SERVICE_STATUS_LEVEL = {"online": 0, "degraded": 1, "offline": 2}
+
+
+def _get_anomaly_level(
+    value: float,
+    medium: float,
+    high: float
+) -> str | None:
+    """Détermine le niveau d'une anomalie."""
+
+    if value >= high:
+        return "high"
+
+    if value >= medium:
+        return "medium"
+
+    return None
+
+
+def _detect_metric_anomalies(logs: list[dict]) -> list[dict]:
+    """Conserve la valeur la plus critique pour chaque métrique."""
+
+    worst_by_metric: dict[str, dict] = {}
+
+    for entry in logs:
+        for metric, (medium, high) in SEUILS.items():
+
+            value = entry.get(metric)
+
+            if value is None:
+                continue
+
+            anomaly_level = _get_anomaly_level(
+                value,
+                medium,
+                high
+            )
+
+            if anomaly_level is None:
+                continue
+
+            current_worst = worst_by_metric.get(metric)
+
+            if current_worst is None or value > current_worst["value"]:
+                worst_by_metric[metric] = {
+                    "metric": metric,
+                    "value": value,
+                    "threshold": medium,
+                    "severity": anomaly_level,
+                    "description": (
+                        f"{METRIC_DESCRIPTIONS[metric]} "
+                        f"(relevé à {entry['timestamp']})"
+                    ),
+                }
+
+    return list(worst_by_metric.values())
+
+
+def _detect_service_anomalies(logs: list[dict]) -> list[dict]:
+    """Détecte les anomalies liées aux statuts des services."""
+
+    anomalies = []
+    seen = set()
+
+    for entry in logs:
+
+        for service, status in entry.get(
+            "service_status", {}
+        ).items():
+
+            if (
+                status in ("degraded", "offline")
+                and (service, status) not in seen
+            ):
+                seen.add((service, status))
+
+                anomaly_level = (
+                    "high"
+                    if status == "offline"
+                    else "medium"
+                )
+
+                anomalies.append({
+                    "metric": f"service_status.{service}",
+                    "value": SERVICE_STATUS_LEVEL[status],
+                    "threshold": SERVICE_STATUS_LEVEL["online"],
+                    "severity": anomaly_level,
+                    "description": (
+                        f"Le service '{service}' est en statut "
+                        f"'{status}' "
+                        f"(relevé à {entry['timestamp']})"
+                    ),
+                })
+
+    return anomalies
+
+
+def _service_status_summary(logs: list[dict]) -> dict:
+    """Retourne le statut le plus récent de chaque service."""
+
+    latest_status: dict[str, str] = {}
+
+    for entry in logs:
+        for service, status in entry.get(
+            "service_status", {}
+        ).items():
+            latest_status[service] = status
+
+    summary = {
+        "online": [],
+        "degraded": [],
+        "offline": [],
+    }
+
+    for service, status in latest_status.items():
+        if status in summary:
+            summary[status].append(service)
+
+    return summary
+
+
+def anomaly_detection_node(state: dict) -> dict:
+    """
+    Nœud pour la détection des anomalies.
+
+    Entrée :
+        state["input_data_logs"]
+
+    Sortie :
+        state["anomalies"]
+        state["aggregates"]
+        state["service_status_summary"]
+    """
+
+    # Récupération des logs validés par le nœud d'ingestion
+    logs = state["input_data_logs"]
+
+    # Détection des anomalies
+    metric_anomalies = _detect_metric_anomalies(logs)
+    service_anomalies = _detect_service_anomalies(logs)
+
+    anomalies = metric_anomalies + service_anomalies
+
+    # Statistiques globales
+    n = len(logs) or 1
+
+    aggregates = {
+        "average_latency_ms": round(
+            sum(entry["latency_ms"] for entry in logs) / n,
+            2
+        ),
+
+        "max_cpu_usage": max(
+            (entry["cpu_usage"] for entry in logs),
+            default=0
+        ),
+
+        "max_memory_usage": max(
+            (entry["memory_usage"] for entry in logs),
+            default=0
+        ),
+
+        "error_rate": round(
+            sum(entry["error_rate"] for entry in logs) / n,
+            4
+        ),
+
+        "uptime_seconds": max(
+            (entry["uptime_seconds"] for entry in logs),
+            default=0
+        ),
+
+        "insights": {
+            "avg_cpu_usage": round(
+                sum(entry["cpu_usage"] for entry in logs) / n,
+                2
+            ),
+
+            "avg_memory_usage": round(
+                sum(entry["memory_usage"] for entry in logs) / n,
+                2
+            ),
+
+            "avg_disk_usage": round(
+                sum(entry["disk_usage"] for entry in logs) / n,
+                2
+            ),
+
+            "avg_io_wait": round(
+                sum(entry["io_wait"] for entry in logs) / n,
+                2
+            ),
+
+            "max_latency_ms": max(
+                (entry["latency_ms"] for entry in logs),
+                default=0
+            ),
+
+            "max_temperature_celsius": max(
+                (
+                    entry["temperature_celsius"]
+                    for entry in logs
+                ),
+                default=0
+            ),
+
+            "points_analyzed": len(logs),
+        },
+    }
+
+    # Mise à jour du state
+    state["anomalies"] = anomalies
+    state["aggregates"] = aggregates
+    state["service_status_summary"] = (
+        _service_status_summary(logs)
+    )
+
+    return state
+
+
+================================================
+FILE: src/data_ingestion_processing.py
+================================================
+"""
+Pour l'ingestion et l'analyse des données 
+Permet de:
+ - Lire le fichier de logs JSON
+ - Vérifier que chaque entrée est bien constituée et respecte le format attendu
+ - Rejeter les entrées non conformes et le notifier dans les logs 
+
+Input: fichier JSON
+Output: state["input_data_logs"]  -> liste des entrées conforme à la structure des données
+        state["ingestion_logs"] -> rapport sur l'ingestion des données
+"""
+from __future__ import annotations
+import json
+from pathlib import Path
+
+DATA_STRUCTURE= {
+    "timestamp": str,
+    "cpu_usage": (int, float),
+    "memory_usage": (int, float),
+    "latency_ms": (int, float),
+    "disk_usage": (int, float),
+    "network_in_kbps": (int, float),
+    "network_out_kbps": (int, float),
+    "io_wait": (int, float),
+    "thread_count": (int, float),
+    "active_connections": (int, float),
+    "error_rate": (int, float),
+    "uptime_seconds": (int, float),
+    "temperature_celsius": (int, float),
+    "power_consumption_watts": (int, float),
+    "service_status": dict,
+}
+
+
+def _validate_data(entry: dict) -> list[str]:
+    """ Vérifie une entrée et retourne les erreurs """
+    errors = []
+    for key, expected_type in DATA_STRUCTURE.items():
+        if key not in entry:
+            errors.append(f"champ manquant: {key}")
+            continue
+        if not isinstance(entry[key], expected_type):
+            errors.append(f"type invalide pour {key}: {type(entry[key]).__name__}")
+    return errors
+
+
+def data_ingestion_node(state: dict) -> dict:
+    """ Noeud pour l'ingestion des données 
+        Entrée: state['data_file'] 
+        Sorie:  state['input_data_logs']
+    """
+    data_file = Path(state["data_file"])
+    with open(data_file, "r", encoding="utf-8") as f:
+        raw = json.load(f)
+
+    if isinstance(raw, dict):
+        raw = [raw]  
+
+    valid_keys = []
+    rejected = []
+    for i, key in enumerate(raw):
+        errors = _validate_data(key)
+        if errors:
+            rejected.append({"index": i, "errors": errors})
+        else:
+            valid_keys.append(key)
+
+    state["input_data_logs"] = valid_keys
+    state["ingestion_logs"] = {
+     "total": len(raw),
+     "valid": len(valid_keys),
+     "invalid": len(rejected),
+     "invalid_details": rejected,
+    }
+    return state
+
+
+
+================================================
+FILE: src/generate_recommendation.py
+================================================
+"""
+Pour la génération de recommendations
+Permet de:
+- Proposer une action (recommandations métiers, bonnes pratiques infra) pour
+  chaque anomalie détectée, en s'appuyant sur un LLM (Mistral via Ollama en local)
+
+Entrée  : state["anomalies"]
+Sortie  : state["recommendations"]
+"""
+
+from __future__ import annotations
+import json
+import urllib.request
+import urllib.error
+
+from .anomaly_detection import SERVICE_STATUS_LEVEL
+
+STATUS_BY_LEVEL = {level: name for name, level in SERVICE_STATUS_LEVEL.items()}
+
+# Configuration de l'appel au LLM local (Ollama)
+OLLAMA_URL = "http://localhost:11434/api/generate"
+OLLAMA_MODEL = "mistral"         
+OLLAMA_TIMEOUT_S = 90            
+OLLAMA_MAX_TOKENS = 250          
+
+# Proposition de recommendations statiques en cas d'insponibilité du LLM
+RECOMMENDATION_RULES = {
+    "cpu_usage": {
+        "action": "Ajouter des instances (scaling horizontal) ou augmenter la capacité CPU",
+        "target": "compute",
+        "parameters": {"strategy": "autoscaling", "cpu_target_percent": 65},
+        "benefit_estimate": "Réduction estimée de 20-30% du taux d'utilisation CPU moyen",
+    },
+    "memory_usage": {
+        "action": "Augmenter la RAM allouée ou identifier les fuites mémoire applicatives",
+        "target": "compute",
+        "parameters": {"strategy": "vertical_scaling_or_profiling"},
+        "benefit_estimate": "Réduction du risque d'OOM et de swap disque",
+    },
+    "latency_ms": {
+        "action": "Mettre en place un cache applicatif et/ou un load balancer",
+        "target": "network",
+        "parameters": {"strategy": "caching_and_load_balancing", "cache_ttl_s": 60},
+        "benefit_estimate": "Réduction estimée de 30-50% de la latence moyenne",
+    },
+    "disk_usage": {
+        "action": "Nettoyer les données obsolètes ou étendre le volume de stockage",
+        "target": "storage",
+        "parameters": {"strategy": "cleanup_or_resize"},
+        "benefit_estimate": "Évite la saturation disque et les incidents en cascade",
+    },
+    "io_wait": {
+        "action": "Migrer vers un stockage plus rapide (SSD/NVMe) ou répartir la charge I/O",
+        "target": "storage",
+        "parameters": {"strategy": "storage_upgrade_or_io_balancing"},
+        "benefit_estimate": "Réduction du temps d'attente I/O et des files d'attente disque",
+    },
+    "error_rate": {
+        "action": "Analyser les logs applicatifs et envisager un rollback ou un correctif",
+        "target": "application",
+        "parameters": {"strategy": "log_analysis_and_rollback"},
+        "benefit_estimate": "Réduction du taux d'erreur et amélioration de la fiabilité",
+    },
+    "temperature_celsius": {
+        "action": "Vérifier le refroidissement matériel et la charge des équipements",
+        "target": "hardware",
+        "parameters": {"strategy": "cooling_check"},
+        "benefit_estimate": "Réduit le risque de throttling ou de panne matérielle",
+    },
+}
+
+
+def _service_fallback(anomaly: dict) -> dict:
+    service = anomaly["metric"].split(".", 1)[1]
+    status = STATUS_BY_LEVEL.get(anomaly["value"], "inconnu")
+    return {
+        "action": f"Investiguer et redémarrer/basculer le service '{service}' (statut: {status})",
+        "target": f"service:{service}",
+        "parameters": {"strategy": "restart_or_failover"},
+        "benefit_estimate": "Rétablissement du service et réduction du risque d'indisponibilité",
+    }
+
+
+
+
+def _build_prompt(anomaly: dict) -> str:
+    return (
+        "Tu es un expert en infrastructure IT qui conseille une PME française.\n"
+        "IMPORTANT : réponds uniquement en français, y compris dans le JSON "
+        "(tous les textes doivent être en français, pas en anglais).\n\n"
+        f"Une anomalie a été détectée : métrique='{anomaly['metric']}', "
+        f"valeur={anomaly['value']}, seuil={anomaly.get('threshold')}, "
+        f"sévérité={anomaly.get('severity')}.\n"
+        f"Détail : {anomaly.get('description')}\n\n"
+        "Propose UNE recommandation concrète pour y remédier.\n"
+        "Sois très concis : les champs 'action' et 'benefit_estimate' doivent "
+        "faire chacun moins de 15 mots.\n"
+        "Réponds STRICTEMENT avec un objet JSON valide contenant EXACTEMENT "
+        "ces 4 clés, sans aucun texte avant ou après :\n"
+        '{"action": "...", "target": "compute|network|storage|application|hardware|service:<nom>", '
+        '"parameters": {"strategy": "..."}, "benefit_estimate": "..."}\n\n'
+        "- action : phrase courte décrivant l'action à mener, EN FRANÇAIS\n"
+        "- benefit_estimate : OBLIGATOIRE, le bénéfice attendu, chiffré si pertinent, "
+        "EN FRANÇAIS (ex: \"Réduction de 20% de la latence\")\n"
+        "- parameters : objet libre avec les paramètres techniques indicatifs\n\n"
+        "N'oublie surtout pas le champ 'benefit_estimate', il est indispensable. "
+        "Rappel : tout le texte doit être en français."
+    )
+
+def _call_llm(anomaly: dict) -> dict | None:
+    """Appelle le LLM local via Ollama et retourne un dict de recommandation,
+    ou None si l'appel échoue ou que la réponse n'est pas exploitable."""
+    prompt = _build_prompt(anomaly)
+    payload = json.dumps({
+        "model": OLLAMA_MODEL,
+        "prompt": prompt,
+        "stream": False,
+        "format": "json",  
+        "options": {"num_predict": OLLAMA_MAX_TOKENS},
+    }).encode("utf-8")
+
+    request = urllib.request.Request(
+        OLLAMA_URL,
+        data=payload,
+        headers={"Content-Type": "application/json"},
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=OLLAMA_TIMEOUT_S) as response:
+            result = json.loads(response.read())
+        parsed = json.loads(result["response"])
+    except (urllib.error.URLError, TimeoutError, KeyError, json.JSONDecodeError, ValueError) as exc:
+        print(f"[llm] Appel LLM impossible ({exc}), bascule sur la règle statique.")
+        return None
+
+   
+    if len(parsed) == 1 and isinstance(next(iter(parsed.values())), dict):
+        parsed = next(iter(parsed.values()))
+
+
+    ADVANTAGE_ALIASES = ["advantage", "benefit", "avantage", "benefice",
+                         "bénéfice", "impact", "gain", "result", "résultat"]
+    if "benefit_estimate" not in parsed:
+        for alias in ADVANTAGE_ALIASES:
+            if alias in parsed:
+                parsed["benefit_estimate"] = parsed[alias]
+                break
+
+    required_keys = {"action", "target", "parameters", "benefit_estimate"}
+    if not required_keys.issubset(parsed.keys()):
+        print(
+            f"[llm] Réponse LLM incomplète (clés reçues: {list(parsed.keys())}), "
+            "bascule sur la règle statique."
+        )
+        return None
+
+    return {
+        "action": parsed["action"],
+        "target": parsed["target"],
+        "parameters": parsed["parameters"],
+        "benefit_estimate": parsed["benefit_estimate"],
+    }
+
+def _recommend_for_anomaly(anomaly: dict) -> dict | None:
+    """ Lance la fonction pour obtenir la réponse du LLM si pas fonctionnelle,
+      utilise la recommendation statique correspondante """
+    metric = anomaly["metric"]
+
+    llm_result = _call_llm(anomaly)
+    if llm_result is not None:
+        return llm_result
+
+    if metric.startswith("service_status."):
+        return _service_fallback(anomaly)
+
+    return RECOMMENDATION_RULES.get(metric)
+
+
+def generate_recommendation_node(state: dict) -> dict:
+    """ Nœud pour la génération de recommandation
+        Entrée: state['anomalies']
+        Pour chaque anomalie, Lance une génération via LLM local (Ollama),
+        avec renvoi sur une recommendation statique en cas d'échec.
+    """
+    anomalies = state["anomalies"]
+    recommendations = []
+
+    for idx, anomaly in enumerate(anomalies, start=1):
+        rule = _recommend_for_anomaly(anomaly)
+        if rule is None:
+            continue
+
+        recommendations.append({
+            "id": f"rec-{idx:03d}",
+            "action": rule["action"],
+            "target": rule["target"],
+            "parameters": rule["parameters"],
+            "benefit_estimate": rule["benefit_estimate"],
+        })
+
+    state["recommendations"] = recommendations
+    return state
+
+
+================================================
+FILE: src/graph.py
+================================================
+
+"""
+Orchestration du pipeline : Ingestion -> Detection d'anomalies -> Recommandation.
+
+Implémentation avec la librairie LangGraph (StateGraph). 
+Chaque étape reste
+une fonction pure state -> state (dict).
+
+Requirement : pip install langgraph
+"""
+
+from __future__ import annotations
+from datetime import datetime, timezone
+from typing import TypedDict, Any
+
+from langgraph.graph import StateGraph, END
+
+from .data_ingestion_processing import data_ingestion_node
+from .anomaly_detection import anomaly_detection_node
+from .generate_recommendation import generate_recommendation_node
+
+
+class PipelineState(TypedDict, total=False):
+
+    data_file: str
+    input_data_logs: list
+    ingestion_logs: dict
+    anomalies: list
+    aggregates: dict
+    service_status_summary: dict
+    recommendations: list
+
+
+def build_graph():
+    """ Construit et compile le graphe LangGraph :
+    ingestion -> analyse -> recommandation -> END
+    """
+    graph = StateGraph(PipelineState)
+
+    graph.add_node("ingestion", data_ingestion_node)
+    graph.add_node("anomaly_detection", anomaly_detection_node)
+    graph.add_node("generate_recommendation", generate_recommendation_node)
+
+    graph.set_entry_point("ingestion")
+    graph.add_edge("ingestion", "anomaly_detection")
+    graph.add_edge("anomaly_detection", "generate_recommendation")
+    graph.add_edge("generate_recommendation", END)
+
+    return graph.compile()
+
+
+def run_pipeline(data_file: str) -> dict:
+    """Exécute le graphe LangGraph et construit le rapport final."""
+    compiled_graph = build_graph()
+    state: PipelineState = compiled_graph.invoke({"data_file": data_file})
+
+    report = {
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "insights": state["aggregates"]["insights"],
+        "average_latency_ms": state["aggregates"]["average_latency_ms"],
+        "max_cpu_usage": state["aggregates"]["max_cpu_usage"],
+        "max_memory_usage": state["aggregates"]["max_memory_usage"],
+        "error_rate": state["aggregates"]["error_rate"],
+        "uptime_seconds": state["aggregates"]["uptime_seconds"],
+        "anomalies": state["anomalies"],
+        "recommendations": state["recommendations"],
+        "service_status_summary": state["service_status_summary"],
+    }
+    return report
+
+
+================================================
+FILE: src/main.py
+================================================
+"""
+Pour lancer le pipeline et écrire output.json.
+
+[--input data/rapport.json] [--output output.json]
+"""
+import argparse
+import json
+
+from src.graph import run_pipeline
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Pipeline d'optimisation d'infrastructure")
+    parser.add_argument("--input", default="data/rapport.json", help="Fichier de logs JSON en entrée")
+    parser.add_argument("--output", default="output.json", help="Fichier de rapport JSON en sortie")
+    args = parser.parse_args()
+
+    report = run_pipeline(args.input)
+
+    with open(args.output, "w", encoding="utf-8") as f:
+        json.dump(report, f, indent=2, ensure_ascii=False)
+
+    print(f"Rapport généré : {args.output}")
+    print(f"  - {len(report['anomalies'])} anomalie(s) détectée(s)")
+    print(f"  - {len(report['recommendations'])} recommandation(s) générée(s)")
+
+
+if __name__ == "__main__":
+    main()
+
+

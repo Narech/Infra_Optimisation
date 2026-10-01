@@ -20,7 +20,7 @@ STATUS_BY_LEVEL = {level: name for name, level in SERVICE_STATUS_LEVEL.items()}
 # Configuration de l'appel au LLM local (Ollama)
 OLLAMA_URL = "http://localhost:11434/api/generate"
 OLLAMA_MODEL = "mistral"         
-OLLAMA_TIMEOUT_S = 90            
+OLLAMA_TIMEOUT_S = 250            
 OLLAMA_MAX_TOKENS = 250          
 
 # Proposition de recommendations statiques en cas d'insponibilité du LLM

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-23T20:55:35.828090Z",
+  "timestamp": "2026-10-01T17:20:39.741160Z",
   "insights": {
     "avg_cpu_usage": 60.67,
     "avg_memory_usage": 67.63,
@@ -89,66 +89,67 @@
   "recommendations": [
     {
       "id": "rec-001",
-      "action": "Mise à l'échelle des ressources CPU",
+      "action": "Optimiser l'allocation de la CPU",
       "target": "compute",
       "parameters": {
-        "strategy": "Augmenter la capacité de processeur pour réduire la charge CPU"
+        "strategy": "Ajustement des tâches, limitération des ressources, allocation plus efficace"
       },
-      "benefit_estimate": "Réduction de la charge CPU de 24%, ce qui améliore la performance et la stabilité de l'application"
+      "benefit_estimate": "Réduction de la consommation de la CPU de 25%"
     },
     {
       "id": "rec-002",
-      "action": "Analyser la consommation de mémoire",
-      "target": "application",
+      "action": "Reduction de l'utilisation mémoire",
+      "target": "compute",
       "parameters": {
-        "strategy": "Profilage des applications pour identifier les problèmes de mémoire excessifs"
+        "strategy": "Réduire les processus ou les applications consommant de la mémoire"
       },
-      "benefit_estimate": "Réduction de la consommation de mémoire et amélioration de la performance de l'application"
+      "benefit_estimate": "Réduction de 30% de l'utilisation mémoire"
     },
     {
       "id": "rec-003",
-      "action": "Analyse de trafic et optimisation de latence réseau",
-      "target": "network",
+      "action": "Analyse et réglage du pare-feu",
+      "target": "compute|network",
       "parameters": {
-        "strategy": "Analyse des paquets et optimisation des routes pour réduire la latence"
+        "strategy": "Optimisation de la latence en mettant en œuvre des règles de pare-feu appropriées"
       },
-      "benefit_estimate": "Réduction de 30% de la latence réseau"
+      "benefit_estimate": "Réduction de la latence de 20%"
     },
     {
       "id": "rec-004",
-      "action": "Augmenter la capacité de stockage",
+      "action": "Augmenter l'espace disque disponible",
       "target": "storage",
       "parameters": {
-        "strategy": "Ajouter un nouveau disque ou augmenter la capacité du disque existant"
+        "strategy": "Ajouter un nouveau disque ou réduire les fichiers superflus"
       },
-      "benefit_estimate": "Réduction de la saturation du disque de plus de 10%"
+      "benefit_estimate": "Réduction du risque de crash et de perte de données (éviter le saturation complet du disque)"
     },
     {
       "id": "rec-005",
-      "action": "Optimiser la performance du disque dur en réduisant l'attente I/O",
+      "action": "Optimisation de la latence I/O",
       "target": "storage",
       "parameters": {
-        "strategy": "Ajuster la taille de la mémoire tampon, optimiser la fragmentation de données, ou migrer vers un disque SSD"
+        "strategy": "Ajuster la taille des blocs d'écriture, vérifier l'état de fragmentation et éventuellement fragmenter les disques",
+        "timeframe": "1 semaine"
       },
-      "benefit_estimate": "Réduction de 50% de l'attente I/O disque"
+      "benefit_estimate": "Réduction de la latence I/O de 10%"
     },
     {
       "id": "rec-006",
-      "action": "Analyse et réduction des erreurs applicatives",
+      "action": "Analyse et correction des erreurs applicatives",
       "target": "application",
       "parameters": {
-        "strategy": "Examiner les logs et paramètres de configuration, puis réajuster les paramètres de performance et de sécurité pour réduire le taux d'erreur"
+        "strategy": "Recherche des logs d'erreurs pour identifier la cause et appliquer une correction"
       },
-      "benefit_estimate": "Réduction du taux d'erreur applicatif de 30%"
+      "benefit_estimate": "Réduction de la fréquence des erreurs applicatives et amélioration de l'expérience utilisateur"
     },
     {
       "id": "rec-007",
-      "action": "Régler la température matérielle",
-      "target": "hardware:équipement_informatique",
+      "action": "Régler la température excessive",
+      "target": "hardware:serveur",
       "parameters": {
-        "strategy": "Réglage des paramètres de refroidissement"
+        "strategy": "Régler le régulateur de température ou de ventilation"
       },
-      "benefit_estimate": "Réduction de la dégradation matérielle et prévention de pannes"
+      "benefit_estimate": "Prévention d'une défaillance matérielle et perte de données"
     },
     {
       "id": "rec-008",
@@ -157,25 +158,25 @@
       "parameters": {
         "strategy": "reboot"
       },
-      "benefit_estimate": "Réduction de la dégradation du service API Gateway"
-    },
-    {
-      "id": "rec-009",
-      "action": "Réinitialiser le service 'cache'",
-      "target": "service:cache",
-      "parameters": {
-        "strategy": "restart"
-      },
       "benefit_estimate": "Rétablissement du service à son état normal"
     },
     {
+      "id": "rec-009",
+      "action": "Réinitialiser le serveur de cache",
+      "target": "service:cache_server",
+      "parameters": {
+        "strategy": "arrêter, vider les données, redémarrer"
+      },
+      "benefit_estimate": "Rétablissement du service à sa capacité normale"
+    },
+    {
       "id": "rec-010",
-      "action": "Réinitialiser le service de base de données",
+      "action": "Réactiver le service de base de données",
       "target": "service:database",
       "parameters": {
-        "strategy": "reboot"
+        "strategy": "Résoudre l'anomalie du service"
       },
-      "benefit_estimate": "Rétablissement du service et réduction de la perte de données"
+      "benefit_estimate": "Rétablissement de l'accès aux données pour la PME"
     }
   ],
   "service_status_summary": {
@@ -186,5 +187,22 @@
     ],
     "degraded": [],
     "offline": []
+  },
+  "predictive_analysis": {
+    "trends": [
+      "La consommation de puissance croît progressivement",
+      "L'utilisation du processeur reste stable",
+      "Le nombre d'erreurs reste faible mais augmente légèrement",
+      "La latence augmente légèrement au-delà des 18h"
+    ],
+    "potential_failures": [
+      "Vers 21h, la base de données pourrait devenir instable"
+    ],
+    "potential_overloads": [
+      "Entre 19h et 21h, il est possible que le serveur soit exposé à un risque de surcharge"
+    ],
+    "resource_planning": [
+      "Pour optimiser la planification des ressources, il est conseillé d'augmenter la capacité de la base de données à partir de 21h, de veiller à la gestion des ressources lors des heures de pointe entre 19h et 21h"
+    ]
   }
 }
